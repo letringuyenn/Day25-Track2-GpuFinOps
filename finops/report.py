@@ -3,7 +3,8 @@ from __future__ import annotations
 
 
 def build_report(baseline_usd: float, optimized_usd: float, levers: dict,
-                 sustainability: dict | None = None, period: str = "monthly") -> str:
+                 sustainability: dict | None = None, period: str = "monthly",
+                 cache: dict | None = None, reasoning: dict | None = None) -> str:
     """Return a markdown cost-optimization report."""
     savings = baseline_usd - optimized_usd
     pct = (savings / baseline_usd * 100.0) if baseline_usd > 0 else 0.0
@@ -22,6 +23,26 @@ def build_report(baseline_usd: float, optimized_usd: float, levers: dict,
     ]
     for name, amount in levers.items():
         lines.append(f"| {name} | ${amount:,.0f} |")
+    if cache:
+        lines += [
+            "",
+            "## Extension: Cache Economics",
+            "",
+            f"- Cached requests observed: {cache.get('cached_requests', 0):,}",
+            f"- Average cached-prefix reads: {cache.get('avg_cache_reads', 0):.2f}",
+            f"- Break-even reads: {cache.get('break_even_reads', 0):.2f}",
+            f"- Cache counted in optimized case: {cache.get('cache_worth_it', False)}",
+        ]
+    if reasoning:
+        lines += [
+            "",
+            "## Extension: Reasoning Budget",
+            "",
+            f"- Reasoning traffic: {reasoning.get('request_share_pct', 0):.1f}% of requests, {reasoning.get('token_share_pct', 0):.1f}% of tokens",
+            f"- Reasoning optimized cost: ${reasoning.get('optimized_cost_daily', 0):.2f}/day ({reasoning.get('cost_share_pct', 0):.1f}% of optimized inference cost)",
+            f"- Reasoning energy: {reasoning.get('wh_daily', 0):,.1f} Wh/day ({reasoning.get('wh_share_pct', 0):.1f}% of inference energy)",
+            "- Routing rule: reserve reasoning for low-confidence or high-complexity requests; default routine traffic to non-reasoning routes.",
+        ]
     if sustainability:
         lines += [
             "",

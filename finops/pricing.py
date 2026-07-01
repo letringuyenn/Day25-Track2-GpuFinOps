@@ -52,6 +52,28 @@ def discount_stack(
     return cache_mult * batch_mult
 
 
+def cache_break_even_reads(write_cost_per_m: float, read_discount: float = 0.10) -> float:
+    """Cached-prefix reads needed to recover the one-time cache write cost.
+
+    Costs are normalized to the uncached input-token price. For example, if writing
+    a cached prefix costs 0.25x of normal input and cached reads cost 0.10x, the
+    break-even point is 0.25 / (1 - 0.10) = 0.28 reads.
+    """
+    savings_per_read = max(0.0, 1.0 - read_discount)
+    if savings_per_read <= 0:
+        return float("inf")
+    return max(0.0, write_cost_per_m) / savings_per_read
+
+
+def cache_is_worth_it(
+    avg_cache_reads: float,
+    write_cost_per_m: float,
+    read_discount: float = 0.10,
+) -> bool:
+    """Return True when expected cached-read savings exceed cache write cost."""
+    return max(0.0, avg_cache_reads) >= cache_break_even_reads(write_cost_per_m, read_discount)
+
+
 def break_even_utilization(discount_frac: float) -> float:
     """Utilization at which a commitment pays off ~= 1 - discount.
 
